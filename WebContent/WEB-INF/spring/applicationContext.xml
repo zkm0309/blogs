@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:mvc="http://www.springframework.org/schema/mvc" 
+       xmlns:task="http://www.springframework.org/schema/task"  
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context-3.0.xsd
+           http://www.springframework.org/schema/aop
+           http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+           http://www.springframework.org/schema/tx
+           http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+           http://www.springframework.org/schema/mvc 
+           http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+           http://www.springframework.org/schema/task  
+		   http://www.springframework.org/schema/task/spring-task-3.1.xsd">
+	<!-- 启用spring mvc 注解 -->
+    <context:annotation-config />
+
+    <!-- 设置使用注解的类所在的jar包 -->
+    <context:component-scan base-package="com.angel.blogs"></context:component-scan>
+
+	<!-- 读取properties文件 -->
+	<context:property-placeholder location="classpath:application.properties" />
+	
+	<!-- dbcp -->
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+ 			<property name="driverClassName" value="${driverClassName}" />   
+	        <property name="url" value="${url}" />   
+	        <property name="username" value="${username}" />   
+	        <property name="password" value="${password}"/> 
+	        <!--maxActive: 最大连接数量-->    
+	        <property name="maxActive" value="5000"/>  
+	        <!--minIdle: 最小空闲连接-->    
+	        <property name="minIdle" value="10"/>  
+	        <!--maxIdle: 最大空闲连接-->    
+	        <property name="maxIdle" value="10000"/>  
+	</bean>
+ 	
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+			<constructor-arg ref="dataSource"></constructor-arg>
+	</bean>
+    
+    <!-- 配置事务管理器 -->
+    <bean id="transactionManager"
+        class="org.springframework.jdbc.datasource.DataSourceTransactionManager"
+        p:dataSource-ref="dataSource" />
+        
+    <!-- 通过AOP配置提供事务增强，让service包下所有Bean的所有方法拥有事务 -->
+	<aop:config proxy-target-class="true">
+		<aop:pointcut id="serviceMethod"
+			expression=" execution(* com.angel.blogs.service..*(..))" />
+		<aop:advisor pointcut-ref="serviceMethod" advice-ref="txAdvice" />
+	</aop:config>
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="*" />
+		</tx:attributes>
+	</tx:advice>
+	
+	<!-- 启动Spring MVC的注解功能，完成请求和注解POJO的映射 -->
+	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter" />
+		
+	<!-- 配置视图解析器，将ModelAndView及字符串解析为具体的页面 -->
+	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver"
+		p:viewClass="org.springframework.web.servlet.view.JstlView" p:prefix="/"
+		p:suffix=".jsp" p:redirectHttp10Compatible="false" />
+	
+	<bean id="multipartResolver" 
+		  class="org.springframework.web.multipart.commons.CommonsMultipartResolver">  
+	   <property name="maxUploadSize">  
+	       <value>1024000000</value>  
+	   </property>  
+	   <property name="maxInMemorySize">  
+	       <value>4096</value>  
+	   </property>  
+  	</bean> 
+</beans>
